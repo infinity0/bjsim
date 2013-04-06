@@ -20,6 +20,8 @@ Purple
 
 Note that in some games, not all of these actions are allowed, and so won't show up in the final table.
 
+TODO: I plan to re-write this in Scala to take advantage of the type system - I am already using monads for much of the game logic - and hopefully get a performance boost.
+
 Accuracy
 --------
 
