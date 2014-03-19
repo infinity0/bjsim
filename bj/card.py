@@ -1,4 +1,5 @@
 from collections import namedtuple
+from fractions import Fraction
 from bj.prob import ProbDist
 
 class CardState(object):
@@ -17,9 +18,9 @@ class NullCardState(CardState, namedtuple('NullCardState', '')):
 	"""Doesn't count any cards."""
 	def draw(self, v=None):
 		if v is None:
-			return ProbDist([((i, self), (1 if i != 0 else 4)/13.0) for i in xrange(10)])
+			return ProbDist([((i, self), Fraction(1 if i != 0 else 4, 13)) for i in xrange(10)])
 		else:
-			return ProbDist([((v, self), 1.0)])
+			return ProbDist([((v, self), Fraction(1))])
 
 	@classmethod
 	def fromState(cls, total):
@@ -42,17 +43,17 @@ class TotalCardState(CardState, namedtuple('TotalCardState', 'decks total state'
 		return (i, self.__class__(self.decks, newstate))
 
 	def draw(self, v=None):
-		cardsleft = 0.0 + self.decks * 52 - sum(self.state)
+		cardsleft = self.decks * 52 - sum(self.state)
 		dist = []
 		if v is None:
 			for i in xrange(10):
-				prob = (self.total[i] - self.state[i]) / cardsleft
+				prob = Fraction(self.total[i] - self.state[i], cardsleft)
 				if not prob: continue
 				dist.append((self.__mknext(i, prob), prob))
 		else:
-			prob = (self.total[v] - self.state[v]) / cardsleft
+			prob = Fraction(self.total[v] - self.state[v], cardsleft)
 			if not prob: raise ValueError()
-			dist.append((self.__mknext(v, prob), 1.0))
+			dist.append((self.__mknext(v, prob), Fraction(1)))
 		return ProbDist(dist)
 
 	def __str__(self):
@@ -73,11 +74,11 @@ class PartialAJHLCardState(CardState, namedtuple('PartialAJHLCardState', 'decks 
 		return (v, self.__class__(self.decks, newstate))
 
 	def draw(self, v=None):
-		cardsleft = 0.0 + self.decks * 52 - sum(self.state)
+		cardsleft = self.decks * 52 - sum(self.state)
 		dist = []
 		if v is None:
 			for i in xrange(4):
-				prob = (self.total[i] - self.state[i]) / cardsleft
+				prob = Fraction(self.total[i] - self.state[i], cardsleft)
 				if not prob: continue
 				if i == 0 or i == 1:
 					dist.append((self.__mknext(i, i, prob), prob))
@@ -94,9 +95,9 @@ class PartialAJHLCardState(CardState, namedtuple('PartialAJHLCardState', 'decks 
 				i = 2
 			elif 6 <= v <= 9:
 				i = 3
-			prob = (self.total[i] - self.state[i]) / cardsleft
+			prob = Fraction(self.total[i] - self.state[i], cardsleft)
 			if not prob: raise ValueError()
-			dist.append((self.__mknext(i, v, prob), 1.0))
+			dist.append((self.__mknext(i, v, prob), Fraction(1)))
 		return ProbDist(dist)
 
 	def __str__(self):

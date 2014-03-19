@@ -1,26 +1,44 @@
+from fractions import Fraction
 import math
 
-# allow distributions to omit events totalling this probability
-PROB_SPACE_TOLERANCE = 1e-6
-# ProbDist.bind will discard source events with this probability
-PROB_EVENT_TOLERANCE = 1e-10
+"""Allow distributions to omit events totalling this probability.
+
+This acts as a sanity check, to ensure that other optimisations you set, such
+as PROB_EVENT_TOLERANCE, or using floats instead of Fractions, don't result in
+wildly-inaccurate results.
+"""
+PROB_SPACE_TOLERANCE = 0
+
+"""Ignore events less likely than this probability when doing ProbDist.bind.
+
+This improves performance at the expense of accuracy, but the latter may be
+acceptable for your application.
+"""
+PROB_EVENT_TOLERANCE = 0
 
 def probTotal(dist):
 	return sum(v[1] for v in dist)
 
 def checkProb(dist):
+	total = probTotal(dist)
 	try:
-		assert math.fabs(probTotal(dist) - 1.0) < PROB_SPACE_TOLERANCE
+		assert math.fabs(total - 1.0) <= PROB_SPACE_TOLERANCE
 	except AssertionError, e:
-		print math.fabs(probTotal(dist)), dist
+		print math.fabs(total), dist
 		raise
 
 class ProbDist(object):
-	"""Monad representing a probability distribution."""
+	"""Monad representing a probability distribution.
+
+	Supports either fractions.Fraction or float as the probability.
+
+	See the PROB_*_TOLERANCE variables for tweaks you can apply; in particular
+	PROB_SPACE_TOLERANCE must be set when using floats.
+	"""
 
 	@classmethod
 	def inject(cls, item):
-		return cls([(item, 1.0)])
+		return cls([(item, Fraction(1))])
 
 	def __init__(self, dist):
 		checkProb(dist)
