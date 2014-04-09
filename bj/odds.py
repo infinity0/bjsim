@@ -40,9 +40,11 @@ class OddsTable(namedtuple('OddsTable', 'initCards rule approx2h')):
 		self = super(OddsTable, cls).__new__(cls, initCards, rule, approx2h)
 		return self
 
-	def checkPlayerOpts(self, playerCards, houseCard, output=False):
+	def checkPlayerOpts(self, playerCards, houseCard, approx2h=None, output=False):
 		initCards = self.initCards
 		rule = self.rule
+		if approx2h is None:
+			approx2h = self.approx2h
 
 		gsd0 = GameStateDist.initGame(2, initCards)
 		gsd0 = gsd0.dealNewRound(cards=[playerCards[0], houseCard, playerCards[1]])
@@ -60,6 +62,7 @@ class OddsTable(namedtuple('OddsTable', 'initCards rule approx2h')):
 		gsd_h = gsd0.bind(GameState.hit)
 		pay_s, pay_hs = payout(gsd0)[1], payout(gsd_h)[1]
 
+		# TODO: this is actually pretty important to do for low-value player hands
 		def approx2_hit(gsd_h):
 			# second-order approximation for H, slightly more accurate but much more expensive
 			# hit, must stick
@@ -72,18 +75,21 @@ class OddsTable(namedtuple('OddsTable', 'initCards rule approx2h')):
 			# Pay(hit) ~= Pay(hit1|couldnt_hit)*P(couldnt_hit) + max(Pay(hit2|could_hit),Pay(hit2|could_hit))*P(could_hit)
 			return pay_hns*p_hn + max(pay_hos, pay_hohs)*p_ho
 
-		pay_h = approx2_hit(gsd_h) if self.approx2h else pay_hs
+		pay_h = approx2_hit(gsd_h) if approx2h else pay_hs
 		odds = {"H": pay_h, "S": pay_s}
 
 		if "D" in rule.actions:
 			odds["D"] = 2*pay_hs
 
+		if "P" in rule.actions and playerCards[0] == playerCards[1]:
+			# TODO: not exactly correct, since the dealer deals both hands from the same deck.
+			# however the accuracy gain is probably not significant enough to justify both the
+			# computation and development cost of modelling multiple players in GameState
+			splitodds = self.checkPlayerOpts((playerCards[0], None), houseCard, approx2h=True)
+			odds["P"] = 2*splitodds[0][1]
+
 		if "U" in rule.actions:
 			odds["U"] = -0.5
-
-		if "P" in rule.actions and playerCards[0] == playerCards[1]:
-			splitodds = self.checkPlayerOpts((playerCards[0], None), houseCard)
-			odds["P"] = 2*splitodds[0][1]
 
 		return sorted(odds.items(), key=lambda p: p[1], reverse=True)
 
