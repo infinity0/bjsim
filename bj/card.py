@@ -15,7 +15,10 @@ class CardState(object):
 		raise NotImplementedError
 
 class NullCardState(CardState, namedtuple('NullCardState', '')):
-	"""Doesn't count any cards."""
+	"""A game that uses infinite decks, or alternatively not counting cards."""
+	def __new__(cls, decks=1, state=None):
+		return super(NullCardState, cls).__new__(cls)
+
 	def draw(self, v=None):
 		if v is None:
 			return ProbDist([((i, self), Fraction(1 if i != 0 else 4, 13)) for i in xrange(10)])
@@ -27,7 +30,7 @@ class NullCardState(CardState, namedtuple('NullCardState', '')):
 		return cls()
 
 	def __str__(self):
-		return '(-)'
+		return '(No card counting)'
 
 class TotalCardState(CardState, namedtuple('TotalCardState', 'decks total state')):
 	"""The actual state of the cards, or alternatively a perfect counter's view."""

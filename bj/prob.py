@@ -16,6 +16,26 @@ acceptable for your application.
 """
 PROB_EVENT_TOLERANCE = 0
 
+def add_module_opts(argparser):
+	argparser.add_argument(
+		"--prob-space-tolerance", help="Allow the sum of probabilities in a "
+		"distributions to total anything between (1 - this) and 1. Default: %(default)s",
+		default=0, type=float)
+	argparser.add_argument(
+		"--prob-event-tolerance", help="When applying transformations (i.e. "
+		"using ProbDist.bind), drop events that are less likely than this. If "
+		"you set this and get an AssertionError, you will also need to set "
+		"--prob-space-tolerance. Default: %(default)s",
+		default=0, type=float)
+	old_parse = argparser.parse_args
+	def parse_args(*args, **kwargs):
+		global PROB_SPACE_TOLERANCE, PROB_EVENT_TOLERANCE
+		args = old_parse(*args, **kwargs)
+		PROB_SPACE_TOLERANCE = args.prob_space_tolerance
+		PROB_EVENT_TOLERANCE = args.prob_event_tolerance
+		return args
+	argparser.parse_args = parse_args
+
 def probTotal(dist):
 	return sum(v[1] for v in dist)
 

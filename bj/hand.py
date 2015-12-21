@@ -1,42 +1,42 @@
 from collections import namedtuple
 
-def genvalues(aces, osum):
-	return tuple(x+osum for x in ([1, 11] if aces else [0]))
+class Hand(namedtuple('Hand', 'ace osum fst snd')):
+	"""A hand of cards.
 
-class H(namedtuple('H', 'aces osum fst snd')):
-	"""A hand of cards."""
-	def __new__(cls, aces=0, osum=0, fst=None, snd=None):
-		self = super(H, cls).__new__(cls, aces, osum, fst, snd)
-		self.values = genvalues(self.aces, self.osum)
-		return self
+	Attributes:
+		ace:
+			Whether we have an ace. (We only care about having one ace, since
+			we never make two aces both worth 11).
+		osum:
+			Sum of all cards, excluding the ace if we have one. This value will
+			be no greater than 23 (22 being special for Blackjack Switch).
+		fst:
+			First card dealt, or None if 0 or 3+ cards have been dealt.
+		snd:
+			Second card dealt, or None if 0, 1 or 3+ cards have been dealt.
+	"""
+	def __new__(cls, ace=False, osum=0, fst=None, snd=None):
+		return super(Hand, cls).__new__(cls, bool(ace), min(23, osum), fst, snd)
 
-	def isNat(self):
-		# TODO: return false after switching
-		return self.aces == 1 and self.osum == 10 and self.cardsDealt() == 2
+	@property
+	def values(self):
+		return tuple(x + self.osum for x in ([1, 11] if self.ace else [0]))
 
-	def isA17(self):
-		return self.aces == 1 and self.osum == 6
-
-	def is22(self):
-		# 22s are treated specially in Blackjack Switch, so account for them here
-		return 22 in self.values
-
-	def isBust(self):
-		return all(x > 21 for x in self.values)
-
-	def canHit(self):
-		return not self.isNat() and not self.isBust()
-
-	def v(self):
-		return max(x for x in self.values if x <= 21)
+	@property
+	def value(self):
+		"""The "best" value for this hand, i.e. closest to but leq than 21."""
+		return self.osum if not self.ace else self.osum + 1 if self.osum >= 11 else self.osum + 11
 
 	def cardsDealt(self):
-		"""3 means 3 or greater."""
+		"""Number of cards dealt in this hand.
+
+		A return-value of 3 means "3 or greater".
+		"""
 		if self.snd is not None:
 			return 2
 		if self.fst is not None:
 			return 1
-		if self.aces or self.osum:
+		if self.ace or self.osum:
 			return 3
 		else:
 			return 0
@@ -44,38 +44,64 @@ class H(namedtuple('H', 'aces osum fst snd')):
 	def isDealComplete(self):
 		return self.cardsDealt() >= 2
 
+	def isBust(self):
+		return self.osum >= 22 if not self.ace else self.osum >= 21
+
+	def isNat(self):
+		# TODO: return false after switching
+		return self.ace and self.osum == 10 and self.cardsDealt() == 2
+
+	def isA17(self):
+		return self.ace and self.osum == 6
+
+	def is22(self):
+		# 22s are treated specially in Blackjack Switch, so account for them here
+		return self.osum == 22 if not self.ace else self.osum in (11, 21)
+
+	def canHit(self):
+		return not self.isNat() and not self.isBust()
+
 	def add(self, x):
-		aces, osum, fst, snd = self.aces, self.osum, self.fst, self.snd
+		"""Add a card to this hand.
+
+		Args:
+			x: The card being added. 1 is ace, and 0 is 10/J/Q/K. Other values
+			represent the cards with that face value.
+		"""
+		ace, osum, fst, snd = self.ace, self.osum, self.fst, self.snd
 		num = self.cardsDealt()
-		if x == 1 and not aces:
-			# we don't care about any subsequent aces since we never make 2 aces worth 11
-			aces += 1
+		if x == 1 and not ace:
+			ace = True
 		else:
 			osum += (x or 10)
-		if osum >= 11 and aces:
-			aces = 0
-			osum += 1
 		if num == 0:
 			fst = x
 		elif num == 1:
 			snd = x
 		else:
 			fst, snd = None, None
-		return self.__class__(aces, min(23, osum), fst, snd)
+		return self.__class__(ace, osum, fst, snd)
+
+	@staticmethod
+	def cardsToStr(*it):
+		return ''.join(('?' if x is None else 'A' if x == 1 else 'J' if x == 0 else str(x)) for x in it)
 
 	def __str__(self):
+		if self.isBust():
+			return "xx"
+		elif self.isNat():
+			return "AJ"
 		if self.cardsDealt() <= 2:
-			orig = '(' + ''.join(('A' if x == 1 else 'J' if x == 0 else str(x) if x else '?') for x in [self.fst, self.snd]) + ')'
+			orig = '(%s)' % Hand.cardsToStr(self.fst, self.snd)
 		else:
 			orig = ''
-		# note: 22/23 both displayed as "XX" but this is probably less confusing since 22/23 are only different in the case of the house
-		return "%s%s%s" % ('' if not self.aces else 'A' if self.aces == 1 else str(self.aces) + 'A', str(self.osum) if self.osum <= 21 else 'XX', orig)
+		return "%s%s%s" % ('' if not self.ace else 'A', self.osum, orig)
 
-assert H().cardsDealt() == 0
-assert H().add(2).cardsDealt() == 1
-assert H().add(1).cardsDealt() == 1
-assert H().add(0).cardsDealt() == 1
-assert H().add(1).add(0).cardsDealt() == 2
-assert H().add(0).add(1).cardsDealt() == 2
-assert H().add(0).add(1).add(2).cardsDealt() == 3
-assert H(1, 10).v() == 21
+assert Hand().cardsDealt() == 0
+assert Hand().add(2).cardsDealt() == 1
+assert Hand().add(1).cardsDealt() == 1
+assert Hand().add(0).cardsDealt() == 1
+assert Hand().add(1).add(0).cardsDealt() == 2
+assert Hand().add(0).add(1).cardsDealt() == 2
+assert Hand().add(0).add(1).add(2).cardsDealt() == 3
+assert Hand(1, 10).value == 21
