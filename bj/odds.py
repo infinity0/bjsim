@@ -34,10 +34,10 @@ class OddsCalculator(namedtuple('OddsCalculator', 'initCards rule approx2h')):
 
 	def expectHousePay(self, h0, gsd):
 		logging.debug("-------- house initial hand vs player hands\n%s",
-			lazyStr(lambda: gsd.map(lambda gs: gs.filterCardState(NullCardState).replaceHand(0, h0)).map(str)))
+			lazyStr(lambda: gsd.map(lambda gs: gs.replaceDecks(NullCardState()).replaceHand(0, h0)).map(str)))
 		gsd = gsd.map(GameState.turnDoneNext).execRound([self.rule.playHouse], 0)
 		logging.debug("-------- house hand vs player end results\n%s",
-			lazyStr(lambda: gsd.map(lambda gs: gs.filterCardState(NullCardState).describeHands()).map(str)))
+			lazyStr(lambda: gsd.map(lambda gs: gs.replaceDecks(NullCardState()).describeHands()).map(str)))
 		return gsd.expectPay(self.rule.pay)
 
 	def calculateOdds(self, playerCard0, houseCard, playerCard1=None):

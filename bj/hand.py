@@ -19,10 +19,6 @@ class Hand(namedtuple('Hand', 'ace osum fst snd')):
 		return super(Hand, cls).__new__(cls, bool(ace), min(23, osum), fst, snd)
 
 	@property
-	def values(self):
-		return tuple(x + self.osum for x in ([1, 11] if self.ace else [0]))
-
-	@property
 	def value(self):
 		"""The "best" value for this hand, i.e. closest to but leq than 21."""
 		return self.osum if not self.ace else self.osum + 1 if self.osum >= 11 else self.osum + 11

@@ -30,7 +30,7 @@ def main(argv):
 		  # Strategy table for Blackjack on the video machines. Perfect card counting.
 		  $ bj.py --rule BJV --count TotalCardState
 
-		  # Numerical odds for (10, 6) vs House 8, for Blackjack Switch.
+		  # Exact odds for (10, 6) vs House 8, for standard Blackjack.
 		  $ bj.py --count TotalCardState 086
 
 		See README for more details.

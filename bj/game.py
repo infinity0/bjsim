@@ -68,9 +68,9 @@ class GameState(namedtuple('GameState', 'cards hands turn done')):
 		# should only really be used for display purposes
 		return self.__class__(self.cards, self.__mkHand(i, h), self.turn, self.done)
 
-	def filterCardState(self, cls):
+	def replaceDecks(self, decks):
 		"""Change the class of the CardState."""
-		return self.__class__(cls.fromState(self), self.hands, self.turn, self.done)
+		return self.__class__(decks, self.hands, self.turn, self.done)
 
 	def describeHands(self):
 		"""Describe how well each player did against the house.

@@ -40,6 +40,8 @@ def probTotal(dist):
 	return sum(v[1] for v in dist)
 
 def checkProb(dist):
+	if not all(v[1] >= 0 for v in dist):
+		raise ValueError()
 	total = probTotal(dist)
 	try:
 		assert math.fabs(total - 1.0) <= PROB_SPACE_TOLERANCE
